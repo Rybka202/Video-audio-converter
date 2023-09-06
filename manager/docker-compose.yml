@@ -1,0 +1,62 @@
+version: "3.7"
+services:
+
+  db:
+    image: postgres:15
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: 1111
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+    hostname: db
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    ports:
+      - 5672:5672
+      - 15674:15672
+    hostname: rabbitmq
+
+  minio:
+      image: minio/minio
+      ports:
+        - 127.0.0.1:9000:9000
+        - 9001:9001
+      environment:
+        - MINIO_ROOT_USER=Simon
+        - MINIO_ROOT_PASSWORD=password
+      hostname: minio
+      command: server /data --console-address ":9001"
+
+  manager:
+    image: 3010202/manager_app:latest
+    env_file:
+      - .env
+    command: ["/manager_app/docker/app.sh"]
+    ports:
+      - 8003:8000
+    depends_on:
+      - db
+      - rabbitmq
+      - minio
+
+  executor1:
+    image: 3010202/executor_app:latest
+    command: ["/executor_app/docker/exec1.sh"]
+    ports:
+      - 8004:8001
+    depends_on:
+      - rabbitmq
+      - minio
+    restart: always
+
+  executor2:
+    image: 3010202/executor_app:latest
+    command: [ "/executor_app/docker/exec2.sh" ]
+    ports:
+      - 8005:8002
+    depends_on:
+      - rabbitmq
+      - minio
+    restart: always
